@@ -264,7 +264,7 @@ def menu_print_certificate(self):
             self.ui.pause()
 
   # CERTIFICATE TYPES CRUD (ADMIN)
- def menu_certificates(self):
+def menu_certificates(self):
         while True:
             self.ui.print_banner(self.auth.current_user)
             self.ui.print_menu("CERTIFICATE TYPES & FEES [ADMIN]", {
