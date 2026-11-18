@@ -315,7 +315,7 @@ def menu_certificates(self):
             self.ui.pause()
 
     # CERTIFICATE REQUESTS CRUD & FILTER
-    def menu_requests(self):
+def menu_requests(self):
         while True:
             self.ui.print_banner(self.auth.current_user)
             self.ui.print_menu("CERTIFICATE REQUESTS & ISSUANCE", {
@@ -387,7 +387,7 @@ def menu_certificates(self):
             self.ui.pause()
 
     # REPORTS
-    def menu_reports(self):
+def menu_reports(self):
         while True:
             self.ui.print_banner(self.auth.current_user)
             self.ui.print_menu("SYSTEM REPORTS & SUMMARIES", {
@@ -421,7 +421,7 @@ def menu_certificates(self):
             self.ui.pause()
 
     # MANAGEMENT (ADMIN)
-    def menu_users(self):
+def menu_users(self):
         while True:
             self.ui.print_banner(self.auth.current_user)
             self.ui.print_menu("USER ACCOUNT MANAGEMENT [ADMIN]", {
@@ -456,7 +456,7 @@ def menu_certificates(self):
             self.ui.pause()
 
     # SYSTEM SETTINGS
-    def menu_settings(self):
+def menu_settings(self):
         while True:
             self.ui.print_banner(self.auth.current_user)
             self.ui.print_menu("TERMINAL & ACCOUNT SETTINGS", {
