@@ -92,11 +92,28 @@ class RequestModel:
     def get_by_id(self, req_id):
         return self.db.query_one("SELECT * FROM requests WHERE request_id = ?", (req_id,))
 
-    def create(self, resident_id, cert_id, request_date, status="Pending"):
-        return self.db.execute(
-            "INSERT INTO requests (resident_id, cert_id, request_date, status) VALUES (?,?,?,?)",
-            (resident_id, cert_id, request_date, status)) is not None
+        def create(self, resident_id, cert_id, request_date, purpose="", status="Pending"):
+        """Adds a request and returns its control number (or None if saving failed)."""
+        cur = self.db.execute(
+            "INSERT INTO requests (resident_id, cert_id, request_date, purpose, status) VALUES (?,?,?,?,?)",
+            (resident_id, cert_id, request_date, purpose, status))
+        if cur is None:
+            return None
+        control_no = f"BRGY-{request_date[:4]}-{cur.lastrowid:04d}"
+        self.db.execute("UPDATE requests SET control_no = ? WHERE request_id = ?",
+                        (control_no, cur.lastrowid))
+        return control_no
 
+    def get_certificate_data(self, req_id):
+        return self.db.query_one("""
+            SELECT rq.request_id, rq.control_no, rq.purpose, rq.request_date, rq.status,
+                   r.full_name, r.birthdate, r.address,
+                   c.cert_name, c.fee
+            FROM requests rq
+            JOIN residents r    ON rq.resident_id = r.resident_id
+            JOIN certificates c ON rq.cert_id = c.cert_id
+            WHERE rq.request_id = ?""", (req_id,))
+            
     def update_status(self, req_id, status):
         cur = self.db.execute("UPDATE requests SET status = ? WHERE request_id = ?", (status, req_id))
         return cur is not None and cur.rowcount > 0
