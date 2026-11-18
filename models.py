@@ -75,13 +75,13 @@ class RequestModel:
 
     def filter_requests(self, status=None, date=None, resident_name=None):
         where, params = [], []
-        if status:
+        if status and status.strip():
             where.append("rq.status = ? COLLATE NOCASE")
             params.append(status.strip())
-        if date:
+        if date and date.strip():
             where.append("rq.request_date = ?")
             params.append(date.strip())
-        if resident_name:
+        if resident_name and resident_name.strip():
             where.append("r.full_name LIKE ?")
             params.append(f"%{resident_name.strip()}%")
         sql = self.JOIN_SQL
