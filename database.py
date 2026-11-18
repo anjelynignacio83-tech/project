@@ -79,15 +79,25 @@ class Database:
                          ("admin", AuthManager.hash_password("admin123"), "Admin", "retro_green"))
             self.execute("INSERT INTO users (username, password, role, theme) VALUES (?,?,?,?)",
                          ("staff", AuthManager.hash_password("staff123"), "Staff", "retro_green"))
-
-        if self.query_one("SELECT COUNT(*) AS n FROM certificates")["n"] == 0:
-            for name, fee in [("Barangay Clearance", 50), ("Certificate of Identity", 30),
-                              Certificate(" of Indigency", 0), ("Business Clearance", 200),
-                             Certificate(" for financial assistance", 0), ("of Good Moral Character", 50) ,
-                             Certificate(" of Residency", 0), ("Non-Residency", 200),
-                            Certificate ("Construction or Building Permit", 3000), ("for Events, Gatherings, or Use of Public Space", 1000),
-                             Certificate("for fencing or excavation")]:
-                self.execute("INSERT INTO certificates (cert_name, fee) VALUES (?,?)", (name, fee))
+  
+        # Certificate types: runs on every start, so new entries in this list
+        # get added to an existing database (existing names are skipped, so no duplicates).
+        for name, fee in [
+            ("Barangay Clearance", 50),
+            ("Certificate of Identity", 30),
+            ("Certificate of Indigency", 0),
+            ("Business Clearance", 1000),
+            ("Certificate for Financial Assistance", 0),
+            ("Certificate of Good Moral Character", 50),
+            ("Certificate of Residency", 50),
+            ("Certificate of Non-Residency", 200),
+            ("Construction or Building Permit", 3000),
+            ("Permit for Events, Gatherings, or Use of Public Space", 1000),
+            ("Permit for Fencing or Excavation", 500),
+        ]:
+            self.execute("""INSERT INTO certificates (cert_name, fee)
+                            SELECT ?, ? WHERE NOT EXISTS
+                            (SELECT 1 FROM certificates WHERE cert_name = ?)""", (name, fee, name))
 
         if self.query_one("SELECT COUNT(*) AS n FROM residents")["n"] == 0:
             for name, bdate, addr, contact in [
