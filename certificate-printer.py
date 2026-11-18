@@ -10,7 +10,6 @@ PROVINCE = "Province of (YOUR PROVINCE)"
 SIGNATORY_NAME = "(NAME OF PUNONG BARANGAY)"
 SIGNATORY_TITLE = "Punong Barangay"
 
-
 OUTPUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "certificates")
 WIDTH = 70
 

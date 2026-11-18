@@ -70,13 +70,8 @@ class Database:
         );
         """)
         self.conn.commit()
-<<<<<<< HEAD
 
-   
     def migrate(self):
-=======
- def migrate(self):
->>>>>>> 68cf91d61f8a22fc176c267db19a0d9be3106858
         cols = [r["name"] for r in self.conn.execute("PRAGMA table_info(requests)")]
         if "purpose" not in cols:
             self.conn.execute("ALTER TABLE requests ADD COLUMN purpose TEXT NOT NULL DEFAULT ''")
@@ -86,10 +81,7 @@ class Database:
                              SET control_no = 'BRGY-' || substr(request_date, 1, 4) || '-' || printf('%04d', request_id)
                              WHERE control_no IS NULL""")
         self.conn.commit()
-<<<<<<< HEAD
 
-=======
->>>>>>> 68cf91d61f8a22fc176c267db19a0d9be3106858
     # starter data (only runs on an empty database) 
     def seed_data(self):
         from auth import AuthManager  # local import avoids a circular import

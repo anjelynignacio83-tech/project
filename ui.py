@@ -27,7 +27,7 @@ class TerminalUI:
     def set_theme(self, key):
         self.theme = self.THEMES.get(key, self.THEMES["retro_green"])
 
-    # NOTE: Text(...) is used everywhere so characters like [ ] in user data are never read as rich markup.
+    
     def print_banner(self, user=None):
         self.console.clear()
         title = Text("BARANGAY CERTIFICATE MANAGEMENT SYSTEM", style=self.theme["primary"], justify="center")

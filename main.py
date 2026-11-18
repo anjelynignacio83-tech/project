@@ -9,7 +9,6 @@ from database import Database
 from auth import AuthManager
 from ui import TerminalUI
 from models import ResidentModel, CertificateModel, RequestModel
-from certificate_printer import generate_certificate
 
 
 class BarangayApp:
@@ -27,15 +26,6 @@ class BarangayApp:
             return True
         except ValueError:
             return False
-                   def issue_certificate(self, req_id):
-        data = self.requests.get_certificate_data(req_id)
-        if not data:
-            self.ui.print_error("Request not found.")
-        elif data['status'] not in ("Approved", "Released"):
-            self.ui.print_error("Only Approved or Released requests can be printed.")
-        else:
-            path = generate_certificate(data, self.auth.current_user['username'])
-            self.ui.print_success(f"Certificate saved: {path}")
 
     def run(self):
         while True:
@@ -93,18 +83,20 @@ class BarangayApp:
         options = {
             "1": "Manage Residents (CRUD & Search)",
             "2": "Manage Certificate Requests (CRUD & Filter)",
-            "3": "Reports & Financial Summaries",
-            "4": "System Settings (Themes & Password)",
+            "3": "Print Certificate Document [GENERATOR]",
+            "4": "Reports & Financial Summaries",
+            "5": "System Settings (Themes & Password)",
             "0": "Logout"
         }
         if user['role'] == 'Admin':
             options = {
                 "1": "Manage Residents (CRUD & Search)",
                 "2": "Manage Certificate Requests (CRUD & Filter)",
-                "3": "Manage Certificate Types [ADMIN]",
-                "4": "User Account Management [ADMIN]",
-                "5": "Reports & Financial Summaries",
-                "6": "System Settings (Themes & Password)",
+                "3": "Print Certificate Document [GENERATOR]",
+                "4": "Manage Certificate Types [ADMIN]",
+                "5": "User Account Management [ADMIN]",
+                "6": "Reports & Financial Summaries",
+                "7": "System Settings (Themes & Password)",
                 "0": "Logout"
             }
 
@@ -117,12 +109,14 @@ class BarangayApp:
             elif choice == "2":
                 self.menu_requests()
             elif choice == "3":
-                self.menu_certificates()
+                self.menu_print_certificate()
             elif choice == "4":
-                self.menu_users()
+                self.menu_certificates()
             elif choice == "5":
-                self.menu_reports()
+                self.menu_users()
             elif choice == "6":
+                self.menu_reports()
+            elif choice == "7":
                 self.menu_settings()
             elif choice == "0":
                 self.auth.logout()
@@ -137,8 +131,10 @@ class BarangayApp:
             elif choice == "2":
                 self.menu_requests()
             elif choice == "3":
-                self.menu_reports()
+                self.menu_print_certificate()
             elif choice == "4":
+                self.menu_reports()
+            elif choice == "5":
                 self.menu_settings()
             elif choice == "0":
                 self.auth.logout()
@@ -212,7 +208,43 @@ class BarangayApp:
                 self.ui.print_error("Invalid option.")
             self.ui.pause()
 
-    #  CERTIFICATE TYPES CRUD (ADMIN)
+    # PRINT CERTIFICATE OPTION
+    def menu_print_certificate(self):
+        from certificate_printer import generate_certificate
+        
+        while True:
+            self.ui.print_banner(self.auth.current_user)
+            self.ui.print_menu("PRINT CERTIFICATE DOCUMENT", {
+                "1": "View Approved/Released Requests (Eligible for Printing)",
+                "2": "Generate Printable Certificate File (.txt)",
+                "0": "Back to Dashboard"
+            })
+            choice = self.ui.prompt("Select option")
+            if choice == "0":
+                break
+            elif choice == "1":
+                rows = self.requests.filter_requests(status="Approved") + self.requests.filter_requests(status="Released")
+                formatted = [[r['request_id'], r['control_no'], r['full_name'], r['cert_name'], r['status']] for r in rows]
+                self.ui.display_table("PRINTABLE CERTIFICATE REQUESTS",
+                                      ["Req ID", "Control No.", "Resident", "Certificate", "Status"], formatted)
+            elif choice == "2":
+                req_id = self.ui.prompt("Enter Request ID to generate certificate file")
+                cert_data = self.requests.get_certificate_data(req_id)
+                if not cert_data:
+                    self.ui.print_error("Request ID not found.")
+                else:
+                    prepared_by = f"{self.auth.current_user['username']} ({self.auth.current_user['role']})"
+                    try:
+                        file_path = generate_certificate(cert_data, prepared_by=prepared_by)
+                        self.ui.print_success("Certificate generated successfully!")
+                        self.ui.print_warning(f"Saved to: {file_path}")
+                    except Exception as e:
+                        self.ui.print_error(f"Failed to generate certificate: {e}")
+            else:
+                self.ui.print_error("Invalid option.")
+            self.ui.pause()
+
+    # CERTIFICATE TYPES CRUD (ADMIN)
     def menu_certificates(self):
         while True:
             self.ui.print_banner(self.auth.current_user)
@@ -273,7 +305,6 @@ class BarangayApp:
                 "3": "Create New Certificate Request",
                 "4": "Update Request Status (Approve / Release / Cancel)",
                 "5": "Delete Request Record",
-                "6": "Print Certificate (Approved / Released only)",
                 "0": "Back to Dashboard"
             })
             choice = self.ui.prompt("Select option")
@@ -281,11 +312,10 @@ class BarangayApp:
                 break
             elif choice == "1":
                 rows = self.requests.get_all_joined()
-                                      formatted = [[r['request_id'], r['control_no'], r['full_name'], r['cert_name'], f"PHP {r['fee']:.2f}",
-                              r['request_date'], r['status']] for r in rows]
+                formatted = [[r['request_id'], r['full_name'], r['cert_name'], f"PHP {r['fee']:.2f}", r['request_date'],
+                              r['status']] for r in rows]
                 self.ui.display_table("ALL CERTIFICATE REQUESTS",
-                                      ["Req ID", "Control No.", "Resident", "Certificate", "Fee", "Date", "Status"],
-                                      formatted)
+                                      ["Req ID", "Resident", "Certificate", "Fee", "Date", "Status"], formatted)
             elif choice == "2":
                 self.ui.print_warning("Leave filters blank to skip.")
                 status = self.ui.prompt("Status (Pending/Approved/Released/Cancelled)")
@@ -297,7 +327,6 @@ class BarangayApp:
                 self.ui.display_table("FILTERED REQUESTS",
                                       ["Req ID", "Resident", "Certificate", "Fee", "Date", "Status"], formatted)
             elif choice == "3":
-                # Show quick reference lists
                 res_list = self.residents.get_all()
                 cert_list = self.certificates.get_all()
                 self.ui.display_table("RESIDENTS", ["ID", "Name"],
@@ -306,8 +335,8 @@ class BarangayApp:
                                       [[c['cert_id'], c['cert_name'], f"PHP {c['fee']:.2f}"] for c in cert_list])
 
                 rid = self.ui.prompt("Enter Resident ID")
-                 cid = self.ui.prompt("Enter Certificate ID")
-                purpose = self.ui.prompt("Purpose (e.g. employment, scholarship)")
+                cid = self.ui.prompt("Enter Certificate ID")
+                purpose = self.ui.prompt("Purpose / Remarks")
                 today = datetime.now().strftime("%Y-%m-%d")
                 rdate = self.ui.prompt(f"Request Date [{today}]") or today
 
@@ -315,14 +344,8 @@ class BarangayApp:
                     self.ui.print_error("Invalid Resident ID or Certificate ID.")
                 elif not self.validate_date(rdate):
                     self.ui.print_error("Invalid date format.")
-                elif not purpose:
-                    self.ui.print_error("Purpose is required.")
-                else:
-                    control_no = self.requests.create(rid, cid, rdate, purpose)
-                    if control_no:
-                        self.ui.print_success(f"Request logged. Control No: {control_no} (Status: Pending).")
-                    else:
-                        self.ui.print_error("Failed to save the request.")
+                elif self.requests.create(rid, cid, rdate, purpose, "Pending"):
+                    self.ui.print_success("Certificate request logged (Status: Pending).")
             elif choice == "4":
                 req_id = self.ui.prompt("Enter Request ID")
                 if not self.requests.get_by_id(req_id):
@@ -332,8 +355,6 @@ class BarangayApp:
                     if status in ["Pending", "Approved", "Released", "Cancelled"]:
                         if self.requests.update_status(req_id, status):
                             self.ui.print_success(f"Request #{req_id} marked as {status}.")
-                                if status == "Released":
-                                self.issue_certificate(req_id)
                     else:
                         self.ui.print_error("Invalid status value.")
             elif choice == "5":
@@ -342,9 +363,6 @@ class BarangayApp:
                     self.ui.print_success("Request deleted.")
                 else:
                     self.ui.print_error("Request not found.")
-                                elif choice == "6":
-                req_id = self.ui.prompt("Enter Request ID to print")
-                self.issue_certificate(req_id)
             else:
                 self.ui.print_error("Invalid option.")
             self.ui.pause()
@@ -369,7 +387,7 @@ class BarangayApp:
                 self.ui.display_table("OFFICIAL CERTIFICATE TRANSACTION HISTORY",
                                       ["Req #", "Date", "Resident Name", "Document Type", "Fee", "Status"], formatted)
             elif choice == "2":
-                           elif choice == "6":
+                self.ui.loading("CALCULATING REVENUE TOTALS...")
                 rows = self.requests.get_revenue_summary()
                 grand_total = sum(float(r['total_collected']) for r in rows)
                 formatted = [
@@ -383,7 +401,7 @@ class BarangayApp:
                 self.ui.print_error("Invalid option.")
             self.ui.pause()
 
-    #  MANAGEMENT (ADMIN)
+    # MANAGEMENT (ADMIN)
     def menu_users(self):
         while True:
             self.ui.print_banner(self.auth.current_user)
@@ -418,7 +436,7 @@ class BarangayApp:
                 self.ui.print_error("Invalid option.")
             self.ui.pause()
 
-    #  SYSTEM SETTINGS
+    # SYSTEM SETTINGS
     def menu_settings(self):
         while True:
             self.ui.print_banner(self.auth.current_user)
