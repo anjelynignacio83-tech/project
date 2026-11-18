@@ -27,7 +27,7 @@ class BarangayApp:
             return True
         except ValueError:
             return False
-                def issue_certificate(self, req_id):
+                   def issue_certificate(self, req_id):
         data = self.requests.get_certificate_data(req_id)
         if not data:
             self.ui.print_error("Request not found.")
@@ -281,7 +281,7 @@ class BarangayApp:
                 break
             elif choice == "1":
                 rows = self.requests.get_all_joined()
-                                formatted = [[r['request_id'], r['control_no'], r['full_name'], r['cert_name'], f"PHP {r['fee']:.2f}",
+                                      formatted = [[r['request_id'], r['control_no'], r['full_name'], r['cert_name'], f"PHP {r['fee']:.2f}",
                               r['request_date'], r['status']] for r in rows]
                 self.ui.display_table("ALL CERTIFICATE REQUESTS",
                                       ["Req ID", "Control No.", "Resident", "Certificate", "Fee", "Date", "Status"],
@@ -306,7 +306,7 @@ class BarangayApp:
                                       [[c['cert_id'], c['cert_name'], f"PHP {c['fee']:.2f}"] for c in cert_list])
 
                 rid = self.ui.prompt("Enter Resident ID")
-                              cid = self.ui.prompt("Enter Certificate ID")
+                 cid = self.ui.prompt("Enter Certificate ID")
                 purpose = self.ui.prompt("Purpose (e.g. employment, scholarship)")
                 today = datetime.now().strftime("%Y-%m-%d")
                 rdate = self.ui.prompt(f"Request Date [{today}]") or today
@@ -332,10 +332,8 @@ class BarangayApp:
                     if status in ["Pending", "Approved", "Released", "Cancelled"]:
                         if self.requests.update_status(req_id, status):
                             self.ui.print_success(f"Request #{req_id} marked as {status}.")
-                                                        if status == "Released":
+                                if status == "Released":
                                 self.issue_certificate(req_id)
-                                              if status == "Released":
-                                
                     else:
                         self.ui.print_error("Invalid status value.")
             elif choice == "5":
@@ -371,7 +369,7 @@ class BarangayApp:
                 self.ui.display_table("OFFICIAL CERTIFICATE TRANSACTION HISTORY",
                                       ["Req #", "Date", "Resident Name", "Document Type", "Fee", "Status"], formatted)
             elif choice == "2":
-                self.ui.loading("CALCULATING REVENUE TOTALS...")
+                           elif choice == "6":
                 rows = self.requests.get_revenue_summary()
                 grand_total = sum(float(r['total_collected']) for r in rows)
                 formatted = [
