@@ -4,11 +4,13 @@ import textwrap
 from datetime import datetime
 
 
-BARANGAY_NAME = "BARANGAY (YOUR BARANGAY)"
-CITY_MUNICIPALITY = "City/Municipality of (YOUR CITY)"
-PROVINCE = "Province of (YOUR PROVINCE)"
-SIGNATORY_NAME = "(NAME OF PUNONG BARANGAY)"
-SIGNATORY_TITLE = "Punong Barangay"
+DEFAULT_CONFIG = {
+    "barangay": "BARANGAY (YOUR BARANGAY)",
+    "city": "City/Municipality of (YOUR CITY)",
+    "province": "Province of (YOUR PROVINCE)",
+    "signatory_name": "(NAME OF PUNONG BARANGAY)",
+    "signatory_title": "Punong Barangay"
+}
 
 
 OUTPUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "certificates")
@@ -30,9 +32,11 @@ def _ordinal(n):
     return f"{n}" + {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
 
 
-def generate_certificate(data, prepared_by=""):
+def generate_certificate(data, prepared_by="", config=None):
     """Write the certificate to certificates/<control no>.txt and return the file path."""
     os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+    cfg = {**DEFAULT_CONFIG, **(config or {})}
 
     control_no = data["control_no"] or f"REQ-{data['request_id']:04d}"
     age = _age(data["birthdate"])
@@ -50,9 +54,9 @@ def generate_certificate(data, prepared_by=""):
     out = [
         line,
         "Republic of the Philippines".center(WIDTH),
-        PROVINCE.center(WIDTH),
-        CITY_MUNICIPALITY.center(WIDTH),
-        BARANGAY_NAME.center(WIDTH),
+        cfg["province"].center(WIDTH),
+        cfg["city"].center(WIDTH),
+        cfg["barangay"].center(WIDTH),
         "OFFICE OF THE PUNONG BARANGAY".center(WIDTH),
         line,
         "",
@@ -68,14 +72,18 @@ def generate_certificate(data, prepared_by=""):
         "",
         "",
         "",
-        SIGNATORY_NAME.rjust(WIDTH - 5),
-        SIGNATORY_TITLE.rjust(WIDTH - 5),
+        cfg["signatory_name"].rjust(WIDTH - 5),
+        cfg["signatory_title"].rjust(WIDTH - 5),
         "",
         f"Fee: PHP {float(data['fee']):.2f}",
         f"Prepared by: {prepared_by}" if prepared_by else "",
         line,
     ]
 
+    path = os.path.join(OUTPUT_DIR, f"{control_no}.txt")
+    with open(path, "w", encoding="utf-8") as f:
+        f.write("\n".join(out) + "\n")
+    return path
     path = os.path.join(OUTPUT_DIR, f"{control_no}.txt")
     with open(path, "w", encoding="utf-8") as f:
         f.write("\n".join(out) + "\n")

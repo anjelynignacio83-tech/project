@@ -208,15 +208,19 @@ class BarangayApp:
                 self.ui.print_error("Invalid option.")
             self.ui.pause()
 
-    # PRINT CERTIFICATE OPTION
-    def menu_print_certificate(self):
-        from certificate_printer import generate_certificate
+def menu_print_certificate(self):
+        from certificate_printer import generate_certificate, DEFAULT_CONFIG
         
+        # Keep a session-persistent configuration dictionary for printing
+        if not hasattr(self, "_cert_config"):
+            self._cert_config = DEFAULT_CONFIG.copy()
+
         while True:
             self.ui.print_banner(self.auth.current_user)
-            self.ui.print_menu("PRINT CERTIFICATE DOCUMENT", {
-                "1": "View Approved/Released Requests (Eligible for Printing)",
+            self.ui.print_menu("PRINT & EDIT CERTIFICATE DOCUMENT", {
+                "1": "View Approved/Released Requests",
                 "2": "Generate Printable Certificate File (.txt)",
+                "3": f"Edit Header & Signatory Details (Current: {self._cert_config['barangay']})",
                 "0": "Back to Dashboard"
             })
             choice = self.ui.prompt("Select option")
@@ -235,17 +239,32 @@ class BarangayApp:
                 else:
                     prepared_by = f"{self.auth.current_user['username']} ({self.auth.current_user['role']})"
                     try:
-                        file_path = generate_certificate(cert_data, prepared_by=prepared_by)
+                        file_path = generate_certificate(cert_data, prepared_by=prepared_by, config=self._cert_config)
                         self.ui.print_success("Certificate generated successfully!")
                         self.ui.print_warning(f"Saved to: {file_path}")
                     except Exception as e:
                         self.ui.print_error(f"Failed to generate certificate: {e}")
+            elif choice == "3":
+                self.ui.print_warning("Leave blank to keep current value.")
+                b = self.ui.prompt(f"Barangay Name [{self._cert_config['barangay']}]")
+                c = self.ui.prompt(f"City/Municipality [{self._cert_config['city']}]")
+                p = self.ui.prompt(f"Province [{self._cert_config['province']}]")
+                s = self.ui.prompt(f"Signatory Name [{self._cert_config['signatory_name']}]")
+                t = self.ui.prompt(f"Signatory Title [{self._cert_config['signatory_title']}]")
+
+                if b: self._cert_config['barangay'] = b
+                if c: self._cert_config['city'] = c
+                if p: self._cert_config['province'] = p
+                if s: self._cert_config['signatory_name'] = s
+                if t: self._cert_config['signatory_title'] = t
+
+                self.ui.print_success("Certificate header and signatory settings updated successfully!")
             else:
                 self.ui.print_error("Invalid option.")
             self.ui.pause()
 
-    # CERTIFICATE TYPES CRUD (ADMIN)
-    def menu_certificates(self):
+  # CERTIFICATE TYPES CRUD (ADMIN)
+ def menu_certificates(self):
         while True:
             self.ui.print_banner(self.auth.current_user)
             self.ui.print_menu("CERTIFICATE TYPES & FEES [ADMIN]", {
