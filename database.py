@@ -11,6 +11,7 @@ class Database:
         self.conn.row_factory = sqlite3.Row          # lets us use row['column_name']
         self.conn.execute("PRAGMA foreign_keys = ON")  # enforce relationships
         self.create_tables()
+        self.migrate()
         self.seed_data()
 
     # helpers used by the other modules
@@ -68,6 +69,18 @@ class Database:
             FOREIGN KEY (cert_id)     REFERENCES certificates(cert_id)  ON DELETE CASCADE
         );
         """)
+        self.conn.commit()
+
+   
+    def migrate(self):
+        cols = [r["name"] for r in self.conn.execute("PRAGMA table_info(requests)")]
+        if "purpose" not in cols:
+            self.conn.execute("ALTER TABLE requests ADD COLUMN purpose TEXT NOT NULL DEFAULT ''")
+        if "control_no" not in cols:
+            self.conn.execute("ALTER TABLE requests ADD COLUMN control_no TEXT")
+        self.conn.execute("""UPDATE requests
+                             SET control_no = 'BRGY-' || substr(request_date, 1, 4) || '-' || printf('%04d', request_id)
+                             WHERE control_no IS NULL""")
         self.conn.commit()
 
     # starter data (only runs on an empty database) 
