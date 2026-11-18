@@ -9,6 +9,7 @@ from database import Database
 from auth import AuthManager
 from ui import TerminalUI
 from models import ResidentModel, CertificateModel, RequestModel
+from certificate_printer import generate_certificate
 
 
 class BarangayApp:
@@ -26,6 +27,15 @@ class BarangayApp:
             return True
         except ValueError:
             return False
+                def issue_certificate(self, req_id):
+        data = self.requests.get_certificate_data(req_id)
+        if not data:
+            self.ui.print_error("Request not found.")
+        elif data['status'] not in ("Approved", "Released"):
+            self.ui.print_error("Only Approved or Released requests can be printed.")
+        else:
+            path = generate_certificate(data, self.auth.current_user['username'])
+            self.ui.print_success(f"Certificate saved: {path}")
 
     def run(self):
         while True:
@@ -263,6 +273,7 @@ class BarangayApp:
                 "3": "Create New Certificate Request",
                 "4": "Update Request Status (Approve / Release / Cancel)",
                 "5": "Delete Request Record",
+                "6": "Print Certificate (Approved / Released only)",
                 "0": "Back to Dashboard"
             })
             choice = self.ui.prompt("Select option")
@@ -270,10 +281,11 @@ class BarangayApp:
                 break
             elif choice == "1":
                 rows = self.requests.get_all_joined()
-                formatted = [[r['request_id'], r['full_name'], r['cert_name'], f"PHP {r['fee']:.2f}", r['request_date'],
-                              r['status']] for r in rows]
+                                formatted = [[r['request_id'], r['control_no'], r['full_name'], r['cert_name'], f"PHP {r['fee']:.2f}",
+                              r['request_date'], r['status']] for r in rows]
                 self.ui.display_table("ALL CERTIFICATE REQUESTS",
-                                      ["Req ID", "Resident", "Certificate", "Fee", "Date", "Status"], formatted)
+                                      ["Req ID", "Control No.", "Resident", "Certificate", "Fee", "Date", "Status"],
+                                      formatted)
             elif choice == "2":
                 self.ui.print_warning("Leave filters blank to skip.")
                 status = self.ui.prompt("Status (Pending/Approved/Released/Cancelled)")
@@ -294,7 +306,8 @@ class BarangayApp:
                                       [[c['cert_id'], c['cert_name'], f"PHP {c['fee']:.2f}"] for c in cert_list])
 
                 rid = self.ui.prompt("Enter Resident ID")
-                cid = self.ui.prompt("Enter Certificate ID")
+                              cid = self.ui.prompt("Enter Certificate ID")
+                purpose = self.ui.prompt("Purpose (e.g. employment, scholarship)")
                 today = datetime.now().strftime("%Y-%m-%d")
                 rdate = self.ui.prompt(f"Request Date [{today}]") or today
 
@@ -302,8 +315,14 @@ class BarangayApp:
                     self.ui.print_error("Invalid Resident ID or Certificate ID.")
                 elif not self.validate_date(rdate):
                     self.ui.print_error("Invalid date format.")
-                elif self.requests.create(rid, cid, rdate, "Pending"):
-                    self.ui.print_success("Certificate request logged (Status: Pending).")
+                elif not purpose:
+                    self.ui.print_error("Purpose is required.")
+                else:
+                    control_no = self.requests.create(rid, cid, rdate, purpose)
+                    if control_no:
+                        self.ui.print_success(f"Request logged. Control No: {control_no} (Status: Pending).")
+                    else:
+                        self.ui.print_error("Failed to save the request.")
             elif choice == "4":
                 req_id = self.ui.prompt("Enter Request ID")
                 if not self.requests.get_by_id(req_id):
@@ -313,6 +332,10 @@ class BarangayApp:
                     if status in ["Pending", "Approved", "Released", "Cancelled"]:
                         if self.requests.update_status(req_id, status):
                             self.ui.print_success(f"Request #{req_id} marked as {status}.")
+                                                        if status == "Released":
+                                self.issue_certificate(req_id)
+                                              if status == "Released":
+                                
                     else:
                         self.ui.print_error("Invalid status value.")
             elif choice == "5":
@@ -321,6 +344,9 @@ class BarangayApp:
                     self.ui.print_success("Request deleted.")
                 else:
                     self.ui.print_error("Request not found.")
+                                elif choice == "6":
+                req_id = self.ui.prompt("Enter Request ID to print")
+                self.issue_certificate(req_id)
             else:
                 self.ui.print_error("Invalid option.")
             self.ui.pause()
